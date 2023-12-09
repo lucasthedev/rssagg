@@ -62,7 +62,12 @@ func main() {
 	routerPaths.Get("/healthz", handlerReadiness)
 	routerPaths.Get("/error", handlerError)
 	routerPaths.Post("/createUser", apiCfg.handlerCreateUser)
-	routerPaths.Get("/getUser", apiCfg.handlerGetUserByApiKey)
+	routerPaths.Get("/getUser", apiCfg.middleware(apiCfg.handlerGetUserByApiKey))
+	routerPaths.Post("/createFeed", apiCfg.middleware(apiCfg.handlerCreateFeed))
+	routerPaths.Get("/getFeeds", apiCfg.handlerGetFeeds)
+	routerPaths.Post("/feedFollows", apiCfg.middleware(apiCfg.handlerCreateFeedFollow))
+	routerPaths.Get("/feedFollows", apiCfg.middleware(apiCfg.handlerGetFeedFollows))
+	routerPaths.Delete("/feedFollows/{feedFollowID}", apiCfg.middleware(apiCfg.handlerUnfollowFeed))
 
 	router.Mount("/v1", routerPaths)
 
