@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,7 +10,13 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"github.com/lucasthedev/rssagg/internal/database"
 )
+
+type apiConfig struct {
+	DB *database.Queries
+}
 
 func main() {
 	fmt.Println("inciando sistema")
@@ -20,6 +27,22 @@ func main() {
 
 	if portString == "" {
 		log.Fatal("Porta não foi encontrada no ambiente")
+	}
+
+	dbUrl := os.Getenv("DB_URL")
+
+	if dbUrl == "" {
+		log.Fatal("DB URL não foi encontrada no ambiente")
+	}
+
+	conn, err := sql.Open("postgres", dbUrl)
+
+	if err != nil {
+		log.Fatal("Não foi possível conectar no banco de dados", err)
+	}
+
+	apiCfg := apiConfig{
+		DB: database.New(conn),
 	}
 
 	router := chi.NewRouter()
@@ -38,6 +61,8 @@ func main() {
 	routerPaths := chi.NewRouter()
 	routerPaths.Get("/healthz", handlerReadiness)
 	routerPaths.Get("/error", handlerError)
+	routerPaths.Post("/createUser", apiCfg.handlerCreateUser)
+	routerPaths.Get("/getUser", apiCfg.handlerGetUserByApiKey)
 
 	router.Mount("/v1", routerPaths)
 
@@ -47,7 +72,7 @@ func main() {
 	}
 
 	log.Printf("Servidor iniciou na porta %v", portString)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 
 	if err != nil {
 		log.Fatal(err)
